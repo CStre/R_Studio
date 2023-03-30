@@ -1,0 +1,548 @@
+---
+title: "Lab 03: Are you Psychic?" 
+subtitle: "Probability & Sampling"
+author: "Collin Streitman"
+date: 'Last rendered on `r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
+output: 
+  html_document: 
+    theme: yeti
+    highlight: textmate
+    code_folding: hide
+---
+
+```{r globaloptions, include = FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+```
+
+------------------------------------------------------------------------
+
+Collaborators: N/A
+
+## Packages Used
+
+```{r packages}
+library(tidyverse)
+```
+
+## Zener Card Test
+
+Psychologists Karl Zener (1903-1964) and J.B. Rhine (1895-1980), who worked at Duke University's Parapsychology Laboratory in the early and mid-20th century, designed a deck of cards to use in ESP research.
+
+```{r, echo = FALSE, fig.align="center"}
+knitr::include_graphics("https://stat-jet-asu.github.io/Moodlepics/zenercards.jpg")
+```
+
+The classic Zener card deck has twenty five cards, five of each symbol: a circle, a plus sign, three vertical wavy lines, a square, and a five-pointed star. In a test for ESP, the experimenter draws a card from a shuffled deck and asks the person being tested to identify which of the five symbols is on the card---without showing them the card, of course.
+
+### Take a Test!
+
+Go to the [Advanced ESP Test](https://psychicscience.org/esp3) and take the test four times. Use the following settings.
+
+-   Clairvoyance
+-   Open deck
+-   Cards seen
+-   25 cards
+
+Record your results below.
+
+```{r}
+Result1 <- 5
+Result2 <- 4
+Result3 <- 7
+Result4 <- 2
+
+Result50 <- Result1 + Result2
+  
+Result100 <- Result1 + Result2 + Result3 + Result4
+```
+
+### Model
+
+Scientifically, since the test is designed to assess psychic ability, we would use a non-psychic person's performance on the test as a basis of comparison. If the experimenter is drawing cards *with replacement* (i.e., putting the card back and shuffling between trials), then we can use a binomial distribution to model these probabilities.
+
+Let X = total number of cards correctly identified on the 25-card test
+
+#### Parameters
+
+Input the parameters $n$ and $p$ for the binomial model.
+
+```{r}
+n <- 25 #This is the number of trials 
+p <- 1/5 #This is the chance that someone has to pick the correct card. Since there is 5 cards, someone has a 1/5 chance to pick the correct symbol
+```
+
+#### E(X) and SD(X)
+
+Calculate the expected value and standard deviation.
+
+```{r}
+# expected value
+n * p
+
+# variance is var = (n * p * (1 - p))
+
+# standard deviation is sd = sqrt(var)
+sqrt(n * p * (1 - p))
+```
+
+#### Distribution Table
+
+Calculate a "table" of the pmf and CDF for this model.
+
+```{r}
+distTable <- tibble(x = 0:n,                            # x = {0, 1, ... , n}
+                    pmf = round(dbinom(x, n, p), 4),    # calculate for all x (rounded)
+                    CDF = round(pbinom(x, n, p), 4))    # calculate for all x (rounded)
+distTable
+
+# pmf is the chance of guessing the amount(x) correct
+```
+
+#### Barplot of the pmf
+
+Create a barplot for the probability mass function (pmf).
+
+```{r}
+breakby <- 1   # choose spacing for the x-axis tick marks
+
+ggplot(distTable, aes(x = x, y = pmf)) +
+  geom_col(fill = "blue", color = "blue", alpha = 0.5, width = 1) +
+  scale_x_continuous(breaks = seq(from = 0, to = n, by = breakby)) +
+  labs(title = sprintf("PMF of X ~ Bin(%1.0f, %1.1f)", n, p),
+       subtitle = "Probabilities for someone just guessing on the ESP test",
+       x = "Correct Amount(x)",
+       y = "Probability f(x)") +
+  theme_minimal()
+```
+
+#### Barplot of the CDF
+
+Create a barplot for the cumulative distribution function (CDF).
+
+```{r}
+breakby <- 1   # choose spacing for the x-axis tick marks
+
+ggplot(distTable, aes(x = x, y = CDF)) +
+  geom_col(fill = "blue", color = "blue", alpha = 0.5, width = 1) +
+  scale_x_continuous(breaks = seq(from = 0, to = n, by = breakby)) +
+  scale_y_continuous(breaks = seq(0, 1, 0.05)) +
+  labs(title = sprintf("CFD of X ~ Bin(%1.0f, %1.1f)", n, p),
+       x = "Correct Amount(x)",
+       y = "Cumulative Probability F(x)") +
+  theme_minimal()
+```
+
+## "Significance"
+
+According to the test, if you get "significantly" more cards correct than the value we would expect from random chance (guessing), this indicates *psi-hitting* (ESP). In other words, getting a large number of cards correct provides statistical evidence of ESP. You can calculate probabilities for your results. Alternatively, some similar tests set a threshold or "cutoff" for significance, based on logical criteria for "unusual" results, such as being more than a certain number of standard deviations from the mean.
+
+### Probability Value
+
+#### Test with 25 Cards
+
+Calculate the probability of getting your Result1 *or more* on a test with 25 cards.
+
+```{r}
+# Whats the probability of getting my result or more on the test?
+# P(X >= 5) = P(X > 4)
+
+pbinom(Result1 - 1, n, p, lower.tail = FALSE)
+
+```
+
+#### Test with 50 Cards
+
+Calculate the probability of getting your Result50 *or more* on a test with 50 cards.
+
+```{r}
+pbinom(Result50 - 1, 50, p, lower.tail = FALSE)
+```
+
+#### Test with 100 Cards
+
+Calculate the probability of getting your Result100 *or more* on a test with 100 cards.
+
+```{r}
+pbinom(Result100 - 1, 100, p, lower.tail = FALSE)
+```
+
+### Cutoff 1: Mean + 2SD
+
+#### Test with 25 Cards
+
+Calculate the statistical threshold/cutoff value of mean + 2SD for a test with 25 cards.
+
+```{r}
+n * p + 2 * sqrt(n * p * (1 - p))
+```
+
+#### Test with 50 Cards
+
+Calculate the statistical threshold/cutoff value of mean + 2SD for a test with 50 cards.
+
+```{r}
+50 * p + 2 * sqrt(50 * p * (1 - p))
+```
+
+#### Test with 100 Cards
+
+Calculate the statistical threshold/cutoff value of mean + 2SD for a test with 100 cards.
+
+```{r}
+100 * p + 2 * sqrt(100 * p * (1 - p))
+```
+
+### Cutoff 2: Most Unusual 5%
+
+#### Test with 25 Cards
+
+Calculate the value that cuts off the top 5% of the distribution for a test with 25 cards.
+
+```{r}
+# What value of x cuts off the top 5% of the curve?
+# The top 5% of the curve and the bottom 95% are separated by the value of X
+
+qbinom(0.05, n, p, lower.tail = FALSE) # now it's upper 5%
+```
+
+#### Test with 50 Cards
+
+Calculate the value that cuts off the top 5% of the distribution for a test with 50 cards.
+
+```{r}
+# What value of x cuts off the top 5% of the curve?
+# The top 5% of the curve and the bottom 95% are separated by the value of X
+
+qbinom(0.05, 50, p, lower.tail = FALSE) # now it's upper 5%
+```
+
+#### Test with 100 Cards
+
+Calculate the value that cuts off the top 5% of the distribution for a test with 100 cards.
+
+```{r}
+# What value of x cuts off the top 5% of the curve?
+# The top 5% of the curve and the bottom 95% are separated by the value of X
+
+qbinom(0.05, 100, p, lower.tail = FALSE) # now it's upper 5%
+```
+
+## Normal Model
+
+The online test uses a common normal approximation for the binomial distribution. The number correct on the test is converted to a z-score and then the probability is calculated using the standard normal curve rather than the binomial distribution. Whether a normal distribution is a good approximation for a binomial distribution typically depends on the value of $n$ and $p$, because some combinations of parameters produce distributions that are decidedly skewed.
+
+To calculate the z-score...
+
+$$z = \frac{score - E(X)}{SD(X)}$$
+
+Note: Normal approximations were derived in a time before we had computers to calculate exact binomial probabilities for larger values of $n$. They are still widely used in many disciplines and statistical programs.
+
+### Probability Value
+
+#### Test with 25 Cards
+
+Using the normal approximation, calculate the probability of getting your Result1 *or more* on a test with 25 cards.
+
+```{r}
+z <- (Result1 - (n * p))/sqrt(n * p * (1 - p))
+
+pnorm(z, 0, 1, lower.tail = FALSE)
+
+```
+
+#### Test with 50 Cards
+
+Using the normal approximation, calculate the probability of getting your Result50 *or more* on a test with 50 cards.
+
+```{r}
+z <- (Result50 - (50 * p))/sqrt(50 * p * (1 - p))
+
+pnorm(z, 0, 1, lower.tail = FALSE)
+```
+
+#### Test with 100 Cards
+
+Using the normal approximation, calculate the probability of getting your Result100 *or more* on a test with 100 cards.
+
+```{r}
+z <- (Result100 - (100 * p))/sqrt(100 * p * (1 - p))
+
+pnorm(z, 0, 1, lower.tail = FALSE)
+```
+
+### Test Simulation
+
+We can randomly sample values from a binomial distribution to simulate a larger number of test results than we can generate manually. The larger the number of simulated values, the closer the data will approximate the theoretical models. `R` does not perform simulations quite as fast as some other languages, but it is quick enough for our exploratory purposes. You will use it here to assess the validity of the normal approximation to the binomial.
+
+#### Test with 25 Cards
+
+Simulate results for 1000 tests with 25 cards and store the results as a tibble. Assess your simulated data for normality using a density plot (set `bw = 1`), cumulative distribution plot, normal QQ plot, skewness, and kurtosis.
+
+```{r}
+n <- 25
+sample25 <- tibble(x = rbinom(1000 , n, p))
+```
+
+##### Determine the Mu and Sigma
+
+```{r}
+xbar <- mean(sample25$x)            # our best estimate for mu
+s <- sd(sample25$x)                 # our best estimate for sigma
+```
+
+##### Density Plot
+
+```{r}
+ggplot(sample25, aes(x = x)) +
+  geom_density(bw = 1) +            # density plot of the data
+  stat_function(                    # theoretical normal curve
+    fun = dnorm,
+    args = list(xbar, s),           # estimated params
+    color = "blue",
+    size = 1.5
+  ) +
+ labs(title = sprintf("Density of X ~ Bin(%1.0f, %1.1f)", n, p),
+       subtitle = "Distribution of correct guesses on a simulation taken 1000 times with 25 guesses each time",
+       x = "Correct Amount(x)",
+       y = "Probability f(x)") +
+  theme_minimal()
+```
+
+##### Cumulative Density Plot
+
+```{r}
+ggplot(sample25, aes(x = x)) +
+  stat_ecdf() +
+  stat_function(
+    fun = pnorm,
+    args = list(xbar, s),
+    color = "blue",
+    size = 1
+  ) +
+  labs(title = sprintf("Cumulative Density of X ~ Bin(%1.0f, %1.1f)", n, p),
+       subtitle = "Cumulative Distribution of correct guesses",
+       x = "Correct Amount(x)",
+       y = "Probability f(x)") +
+  theme_minimal()
+```
+
+##### Quantile-Quantile Plot
+
+```{r}
+ggplot(sample25, aes(sample = x)) +
+  stat_qq() +
+  stat_qq_line(
+    color = "blue",
+    size = 1.5
+  ) +
+  labs(title = sprintf("Quantile-Quantile Plot", n, p),
+       subtitle = "Plot of Data vs. Theoretical Deciles",
+       x = "Theory (x)",
+       y = "Data f(x)") +
+  theme_minimal()
+```
+
+##### Skewness and Kurtosis Table
+
+```{r}
+library(moments)
+tibble(statistic = c("Skewness", "Kurtosis", "Excess K"),
+       theory    = c(0, 3, 0),
+       data      = c(skewness(sample25$x),
+                     kurtosis(sample25$x),
+                     kurtosis(sample25$x) - 3))
+```
+
+#### Test with 50 Cards
+
+Simulate results for 1000 tests with 50 cards and store the results as a tibble. Assess your simulated data for normality using a density plot (set `bw = 1`), cumulative distribution plot, normal QQ plot, skewness, and kurtosis.
+
+```{r}
+n <- 50
+sample50 <- tibble(x = rbinom(1000 , n, p))
+```
+
+##### Determine the Mu and Sigma
+
+```{r}
+xbar <- mean(sample50$x)            # our best estimate for mu
+s <- sd(sample50$x)                 # our best estimate for sigma
+```
+
+##### Density Plot
+
+```{r}
+ggplot(sample50, aes(x = x)) +
+  geom_density(bw = 1) +            # density plot of the data
+  stat_function(                    # theoretical normal curve
+    fun = dnorm,
+    args = list(xbar, s),           # estimated params
+    color = "blue",
+    size = 1.5
+  ) +
+ labs(title = sprintf("Density of X ~ Bin(%1.0f, %1.1f)", n, p),
+       subtitle = "Distribution of correct guesses on a simulation taken 1000 times with 50 guesses each time",
+       x = "Correct Amount(x)",
+       y = "Probability f(x)") +
+  theme_minimal()
+```
+
+##### Cumulative Density Plot
+
+```{r}
+ggplot(sample50, aes(x = x)) +
+  stat_ecdf() +
+  stat_function(
+    fun = pnorm,
+    args = list(xbar, s),
+    color = "blue",
+    size = 1
+  ) +
+  labs(title = sprintf("Cumulative Density of X ~ Bin(%1.0f, %1.1f)", n, p),
+       subtitle = "Cumulative Distribution of correct guesses",
+       x = "Correct Amount(x)",
+       y = "Probability f(x)") +
+  theme_minimal()
+```
+
+##### Quantile-Quantile Plot
+
+```{r}
+ggplot(sample50, aes(sample = x)) +
+  stat_qq() +
+  stat_qq_line(
+    color = "blue",
+    size = 1.5
+  ) +
+  labs(title = sprintf("Quantile-Quantile Plot", n, p),
+       subtitle = "Plot of Data vs. Theoretical Deciles",
+       x = "Theory (x)",
+       y = "Data f(x)") +
+  theme_minimal()
+```
+
+##### Skewness and Kurtosis Table
+
+```{r}
+library(moments)
+tibble(statistic = c("Skewness", "Kurtosis", "Excess K"),
+       theory    = c(0, 3, 0),
+       data      = c(skewness(sample50$x),
+                     kurtosis(sample50$x),
+                     kurtosis(sample50$x) - 3))
+```
+
+#### Test with 100 Cards
+
+Simulate results for 1000 tests with 100 cards and store the results as a tibble. Assess your simulated data for normality using a density plot (set `bw = 1`), cumulative distribution plot, normal QQ plot, skewness, and kurtosis.
+
+```{r}
+n <- 100
+sample100 <- tibble(x = rbinom(1000 , n, p))
+```
+
+##### Determine the Mu and Sigma
+
+```{r}
+xbar <- mean(sample100$x)            # our best estimate for mu
+s <- sd(sample100$x)                 # our best estimate for sigma
+```
+
+##### Density Plot
+
+```{r}
+ggplot(sample100, aes(x = x)) +
+  geom_density(bw = 1) +            # density plot of the data
+  stat_function(                    # theoretical normal curve
+    fun = dnorm,
+    args = list(xbar, s),           # estimated params
+    color = "blue",
+    size = 1.5
+  ) +
+ labs(title = sprintf("Density of X ~ Bin(%1.0f, %1.1f)", n, p),
+       subtitle = "Distribution of correct guesses on a simulation taken 1000 times with 100 guesses each time",
+       x = "Correct Amount(x)",
+       y = "Probability f(x)") +
+  theme_minimal()
+```
+
+##### Cumulative Density Plot
+
+```{r}
+ggplot(sample100, aes(x = x)) +
+  stat_ecdf() +
+  stat_function(
+    fun = pnorm,
+    args = list(xbar, s),
+    color = "blue",
+    size = 1
+  ) +
+  labs(title = sprintf("Cumulative Density of X ~ Bin(%1.0f, %1.1f)", n, p),
+       subtitle = "Cumulative Distribution of correct guesses",
+       x = "Correct Amount(x)",
+       y = "Probability f(x)") +
+  theme_minimal()
+```
+
+##### Quantile-Quantile Plot
+
+```{r}
+ggplot(sample100, aes(sample = x)) +
+  stat_qq() +
+  stat_qq_line(
+    color = "blue",
+    size = 1.5
+  ) +
+  labs(title = sprintf("Quantile-Quantile Plot", n, p),
+       subtitle = "Plot of Data vs. Theoretical Deciles",
+       x = "Theory (x)",
+       y = "Data f(x)") +
+  theme_minimal()
+```
+
+##### Skewness and Kurtosis Table
+
+```{r}
+library(moments)
+tibble(statistic = c("Skewness", "Kurtosis", "Excess K"),
+       theory    = c(0, 3, 0),
+       data      = c(skewness(sample100$x), 
+                     kurtosis(sample100$x),
+                     kurtosis(sample100$x) - 3)) # Difference of the two Kurtosis'?
+```
+
+<hr>
+
+## Questions
+
+Your answers should reference specific tables, plots, and/or quantitative values to support your statements. Avoid vague phrases like "the numbers show". Use appropriate statistical vocabulary.
+
+1)  Is there any "significant" statistical evidence that you possess psychic ability/ESP (i.e., that your test results reflect more than guessing)? Discuss your various assessments of your test results.
+
+ANSWER: To summarize my findings, no, there is no substantial evidence to support that there was psychic abilities involved with my guessing. In order for the data to warrant me into considering the possibility that there was psychic ability, the actual value should be notably higher than the expected value and it was not. According to some early calculations, with 25 cards and 5 options to choose from, the expected value of choosing choosing the correct card is 5 or 20%. When I took the test myself with the same setup, the amount I got correct was 5 the first time, 4 the second time, 7 the third time, and 2 the forth time. After doing some quick calculations, the average of those results are 4.5 which is, in fact, lower than the expected value of 5. The two barplots at the beginning of this lab are also another look at the expected distribution probabilites of the number of guesses where here you can see that the actual value of 4.5 as an average among my 4 trials had a high probability of happening. 
+
+2)  Based on the probabilities you calculated for your test results and the evidence from the various normal assessments, is the normal approximation appropriate for all three test sizes? Discuss.
+
+ANSWER: Referring to the significance section of the lab that calculates the probability of getting my Result1 or more on a test with 25, 50, or 100 cards, the calucluations for the actual results are actually pretty close to the prodicted probabilites of the normal model calculated below. The amount of acuracy for the normal model was further supported in the Test Simualtion section of the lab but gave more insight. With the three graphs, density plot, cumulative density plot, and the QQ plot, I could see a visual representation of the probabilites of guessing a certain amount for the expected compared to the actual. One thing I noticed after compareing these same graphs amoung all the differnt test sizes (25, 50, 100), is that as the amount of cards increased, the more in-line the actual distribution was with the normal distribution or the expected evaluation. Because the nature of my guessing, the 25 card actual result was not too far of from what it was expected to be but this could be much different if I would have guessed worse. It is because of this reason that I do not think the normal approximation is effective with all three tests. I would suggest not using it to predict anything less than 50.
+
+3)  The test website states the following: "You can choose various options for the number of trials in the test (up to a maximum of 1000 individual trials). You should choose at least 50 trials to obtain a reliable indication of your performance." Looking at this from a probability and sampling point of view, why do they make this assertion?
+
+ANSWER: Going back to the discoveries I made in question 2, as the number of trials increases, the probability becomes more acurate and therefore anything below 50 trials, and possibly including 50 trials, may be inacurrate. 1000 trials would be the most acurate or any number higher than 50.
+
+## Reference Materials
+
+-   [Bernoulli & Binomial Distributions: The Math](https://stat-jet-asu.github.io/Slides/STT3850/BinomialDistributionTheory.html#1)
+-   [Bernoulli & Binomial Distributions: `R` Code](https://stat-jet-asu.github.io/Slides/STT3850/BinomialDistributionRCode.html#1)
+-   [Normal Distribution: The Math](https://stat-jet-asu.github.io/Slides/STT3850/BinomialDistributionTheory.html#1)
+-   [Normal Distribution: `R` Code](https://stat-jet-asu.github.io/Slides/STT3850/BinomialDistributionRCode.html#1)
+-   [Normal Distribution: Assessing](https://stat-jet-asu.github.io/Slides/STT3850/NormalAssessment.html#1)
+
+------------------------------------------------------------------------
+
+```{r}
+sessionInfo()
+```

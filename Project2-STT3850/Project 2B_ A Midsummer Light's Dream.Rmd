@@ -1,0 +1,216 @@
+---
+title: "Project 2B: A Midsummer Light's Dream"
+author: "Collin Streitman"
+date: '`r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
+output: 
+  html_document: 
+    theme: cosmo
+    highlight: textmate
+---
+
+```{r globaloptions, include = FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+```
+
+------------------------------------------------------------------------
+
+**Note:** Use tidyverse functions whenever possible for manipulating/summarizing data and for plotting. Except for plots used specifically to assess normality, all plots should have appropriate titles and axis labels. If you have a partial code attempt that prevents your Markdown from compiling to HTML, comment out the code so `R` will not try to compile it but I can still see your efforts.
+
+**Names of Collaborators**
+
+Names: Jacob Dupuis & Dalton Lambert
+
+### Setup
+
+#### Packages Used
+
+Load all packages used in this project.
+
+```{r loadpackages}
+library(HistData)
+library(tidyverse)
+library(infer)
+```
+
+### Analysis
+
+#### Background
+
+Albert Michelson (1852--1931) was an American physicist known for his work on measuring the speed of light. He was the first American to win the Nobel Prize for science (1907). The `Michelson` dataset from the HistData package contains experimental measurements of the velocity of light in air, which Michelson gathered from June 5 to July 2, 1879 and reported in [Michelson (1882)](https://www.gutenberg.org/files/11753/11753-h/11753-h.htm). The reported data values plus 299,000 are Michelson's actual experimental measurements in km/sec---he subtracted 299,000 to make his subsequent calculations easier to do by hand. To compensate for refraction due to air temperature when he estimated the speed of light in air, Michelson added 12 km/sec to the data. When further estimating for the speed of light in a vacuum, he added an additional refraction correction of 80 km/sec. Variability in the data observations is assumed to be caused by the experimental equipment and method, so the mean of the measurements is used to estimate the velocity.
+
+Currently accepted values for the velocity of light are 299,792.458 km/sec in a vacuum and 299,702.547 km/sec in air. The ratio of these two values is 1.0003, or three ten-thousandths of the velocity of light in a vacuum.
+
+Reportedly, when asked why he chose to study light, Michelson once said, "because it's so much fun."
+
+You will estimate the velocity of light from Michelson's experimental data, using interval estimates not yet developed in his time.
+
+#### **Modify the Dataset**
+
+Use `glimpse()` to visualize the dataset.
+
+```{r}
+lightObv <- glimpse(Michelson)
+```
+
+Create new variables in the dataset to represent Michelson's corrections to his data. Then `glimpse()` the revised dataset.
+
+-   `vel_air` = add 12 to the observed `velocity` values to get the temperature-corrected velocity in air
+-   `vel_vac` = add 80 to the corrected velocity in air to get the refraction-corrected velocity in a vacuum
+
+```{r}
+newLightObv <- lightObv %>%
+mutate(vel_air = 12 + velocity,
+       vel_vac = 80 + vel_air)
+glimpse(newLightObv)
+```
+
+#### **Exploration 1: Exploratory Data Analysis**
+
+The first step before doing any estimation is to conduct exploratory data analysis (EDA). Use the original `velocity` data.
+
+##### Calculate the sample mean, standard deviation, skewness, and kurtosis.
+
+```{r}
+library(moments)
+tibble(statistic = c("Mean", "SD", "Skewness", "Kurtosis"),
+       data      = c(mean(lightObv$velocity),
+                     sd(lightObv$velocity),
+                     skewness(lightObv$velocity),
+                     kurtosis(lightObv$velocity)))
+```
+
+##### Create a histogram of the data. Include an appropriate number of bins.
+
+```{r}
+ggplot(lightObv, aes(x = velocity)) +
+  geom_histogram(bins = 10, fill = "lightblue", color = "white") +
+  labs(title = "Count of Light Velocity",
+       subtitle = "The distribution of velocity from the Michelson dataset") +
+  theme_minimal()
+```
+
+##### Create a boxplot of the data. Use `outlier.color =` to highlight outliers.
+
+```{r}
+ggplot(lightObv, aes(x = velocity)) + 
+  geom_boxplot(fill = "lightblue", outlier.color = "blue") +
+  labs(title = "Distribution of Light Velocity",
+       subtitle = "Outlier are marked was blue",
+       x = "velocity",
+       y = "count") + 
+  theme_minimal()
+```
+
+##### Create a normal QQ plot of the data a reference line in a different color.
+
+```{r}
+ggplot(lightObv, aes(sample = velocity)) +
+  stat_qq() +
+  stat_qq_line(
+    color = "lightblue",
+    size = .75
+  ) +
+  labs(title = ("Quantile-Quantile Plot"),
+       subtitle = "Plot of Data vs. Theoretical Deciles",
+       x = "Theory (x)",
+       y = "Data f(x)") +
+  theme_minimal()
+```
+
+#### **Exploration 2: Traditional 95% Confidence Interval**
+
+Calculate a traditional 95% confidence interval for the velocity of light in air and in vacuum.
+
+##### Velocity of Light in Air
+
+```{r}
+t_test(newLightObv, response = vel_air) %>% 
+  select(lower_ci, upper_ci)
+```
+
+##### Velocity of Light in Vacuum
+
+```{r}
+t_test(newLightObv, response = vel_vac) %>% 
+  select(lower_ci, upper_ci)
+```
+
+#### **Exploration 3: Bootstrap 95% Percentile Interval**
+
+Calculate a bootstrap 95% percentile interval for the velocity of light in air and in vacuum.
+
+##### Velocity of Light in Air
+
+```{r}
+bootstrap_distribution <- newLightObv %>%
+  specify(response = vel_air) %>%
+  generate(reps = 100, type = "bootstrap") %>%
+  calculate(stat = "mean")
+
+percentile_ci <- bootstrap_distribution %>% 
+  get_confidence_interval(level = .95, type = "percentile")
+glimpse(percentile_ci)
+```
+
+##### Velocity of Light in Vacuum
+
+```{r}
+bootstrap_distribution <- newLightObv %>%
+  specify(response = vel_vac) %>%
+  generate(reps = 100, type = "bootstrap") %>%
+  calculate(stat = "mean")
+
+percentile_ci <- bootstrap_distribution %>% 
+  get_confidence_interval(level = .95, type = "percentile")
+glimpse(percentile_ci)
+```
+
+#### **Exploration 4: Bootstrap 95% Standard Error Interval**
+
+Calculate a bootstrap 95% standard error interval for the velocity of light in air and in vacuum.
+
+##### Velocity of Light in Air
+
+```{r}
+bootstrap_distribution <- newLightObv %>%
+  specify(response = vel_air) %>%
+  generate(type = "bootstrap") %>%
+  calculate(stat = "mean")
+glimpse(bootstrap_distribution)
+```
+
+##### Velocity of Light in Vacuum
+
+```{r}
+bootstrap_distribution <- newLightObv %>%
+  specify(response = vel_vac) %>%
+  generate(type = "bootstrap") %>%
+  calculate(stat = "mean")
+glimpse(bootstrap_distribution)
+```
+
+### Questions
+
+#### **Question 1: Interval Assumptions**
+
+Are all of the necessary assumptions met for each of the three interval estimation methods you used? Discuss using logic and evidence from your exploratory data analysis.
+
+**ANSWER:** Yes, the necessary assumptions are met for each of the three estimation interval methods because they all output relatively similar results and each one displays a pattern of the velocity of light being higher in a vacuum. For exploration 2 and 3 or method 1 and 2, it gave both an upper and lower confidence interval which is consistent with the other last method for which the output falls between said intervals. 
+
+#### **Question 2: The "True" Velocities**
+
+Do any of the interval estimates you created contain the currently accepted "true" values for the velocity of light in air and in vacuum? If not, why do you think the estimation "failed"? Discuss.
+
+**ANSWER:** No, the currently accepted true values of the velocity of light is calculated in the first table where the mean velocity was 852.4. Looking at the interval estimates, they are all higher if not much higher than the "true" values of velocity. The Graphs all show signs of high amounts of variability and the tables kutosis and skewness values are strong signifiers that this data is also inconsistent. I think because of the original data set, the modified values made by Michelson are also flawed. The logic is there and the effects of Michelson's calculations are present since the estimates were higher but no, none of the estimates contian the "true" intervals.
+
+------------------------------------------------------------------------
+
+Reference: Michelson, A. A. (1882). "Experimental determination of the velocity of light made at the United States Naval Academy, Annapolis". *Astronomical Papers*, 1, 109-145, U. S. Nautical Almanac Office.
+
+```{r}
+sessionInfo()
+```

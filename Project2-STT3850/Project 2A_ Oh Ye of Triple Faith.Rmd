@@ -1,0 +1,279 @@
+---
+title: "Project 2A: Oh Ye of Triple Faith"
+author: "Collin Streitman"
+date: '`r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
+output: 
+  html_document: 
+    theme: cosmo
+    highlight: textmate
+---
+
+```{r globaloptions, include = FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+```
+***
+
+**Note:** Use tidyverse functions whenever possible for manipulating/summarizing data and for plotting. Except for plots used specifically to assess normality, all plots should have appropriate titles and axis labels. If you have a partial code attempt that prevents your Markdown from compiling to HTML, comment out the code so `R` will not try to compile it but I can still see your efforts. 
+
+**Names of Collaborators**
+
+Names: Jacob Dupuis & Dalton Lambert
+
+### Setup
+
+#### Packages Used
+
+Load all packages used in this project.
+
+```{r loadpackages}
+library(prob)
+library(tidyverse)
+```
+
+### Analysis
+
+#### Background
+
+A [digital communication channel transmits binary signals](http://what-when-how.com/data-communications-and-networking/digital-transmission-of-digital-data/) (0 or 1). These signals are then built into larger messages. For example, ASCII represents letters, numbers, and other symbols using 8-bit binary code. Suppose a given system is susceptible to electronic interference, so there is a some chance that any single bit sent by the system will be incorrectly received (i.e., the sender transmits a 0, but the receiver mistakenly interprets it as a 1). The interference is non-patterned, so all errors are random and independent. 
+
+One simple method for error reduction is repetition code. For critical messages, we can use triple repetition code (TRC). The individual digits are transmitted as repeated blocks of three identical digits (a single 0 in the message would be sent as the block 000 and a single 1 would be sent as 111). The receiver uses "majority logic decoding" method on blocks. If the majority of the three-block's digits are interpreted by the receiver as 0, then the transmitted digit represented by the block is recorded as a 0. If the majority are interpreted as 1, then the digit is recorded as a 1. We can model a system like this using the binomial and/or normal distributions.
+
+```{r, echo = FALSE}
+library(kableExtra)
+tibble(dig = c("0", "0", "0", "0", "0"),
+       snt = c("000", "000", "000", "000", "000"),
+       rec = c("000", "100", "001", "101", "111"),
+       maj = c("0", "0", "0", "1", "1"),
+       int = c("0", "0", "0", "1", "1"),
+       cor = c("yes", "yes", "yes", "no", "no")) %>%
+  kable(col.names = c("message digit",
+                      "triple sent",
+                      "triple received",
+                      "majority digit",
+                      "interpreted digit",
+                      "correct?"),
+        align = "ccccc",
+        caption = "Majority Logic Decoding Examples") %>%
+  kable_styling(full_width = FALSE,
+                position = "left",
+                font_size = 14)
+```
+
+#### The System
+
+A 1000 Mbps system transmits data at a rate of 10^9^ individual bits per second. In the system you are analyzing, each bit has a 0.1% (i.e., 0.001) chance of being incorrectly received. We can model this system using a binomial distribution. You will explore using exact binomial calculations, binomial random value simulation, and normal approximation.
+
+**Modify the NAMELET object in the code below to display the ASCII representation of your name instead of Dr. Thomley's.**
+
+```{r, message = FALSE}
+require(gtools)
+require(broman)
+require(BMS)
+NAMELET  <- c("C", "o", "l", "l", "i", "n", " ", "S", "t", "r", "e", "i", "t", "m", "a", "n") # change to your name
+n        <- length(NAMELET)
+NAMEHEX  <- convert2hex(asc(NAMELET))
+NAMEBIN  <- matrix(rep(0, n * 8), ncol = 8)
+for (i in 1:n) {
+    NAMEBIN[i, 1:8] <- hex2bin(NAMEHEX[i])
+}
+rownames(NAMEBIN) <- NAMELET
+colnames(NAMEBIN) <- c("Bit1", "Bit2", "Bit3", "Bit4", "Bit5", "Bit6", "Bit7", "Bit8")
+print(NAMEBIN)
+```
+
+#### **Exploration 1**
+
+##### **Answer the following using exact binomial calculations.**
+
+Set the appropriate parameters $n$ and $p$ for the binomial model of this system.
+
+```{r}
+n <- 10^9    # Amount of bits per second being analysed
+p <- 0.001   # Probability of a bit being processed incorrectly
+```
+
+For this system, how many errors per second would we expect to get, on average? 
+
+```{r}
+expErr <- (n * p)
+expErr
+```
+
+For this system, what is the standard deviation of the number of errors per second? 
+
+```{r}
+sqrt(n * p * (1 - p))
+```
+What is the probability of getting zero errors in a given second (i.e., an error-free second)? 
+
+```{r}
+dbinom(0, n, p)
+```
+
+What is the probability of observing exactly the expected number of errors in a given second? 
+
+```{r}
+dbinom(expErr, n, p)
+```
+
+What is the probability that the observed number of errors exceeds the expected number of errors? 
+
+```{r}
+pbinom(expErr, n, p)
+```
+
+What is the probability that the observed number of errors is within one standard deviation of the mean?
+
+```{r}
+
+```
+
+#### **Exploration 2**
+
+##### **Answer the following using 100,000 randomly generated values.**
+
+Use `rbinom()` to generate values. Save the results as the object `randvals`.
+
+```{r}
+randvals <- tibble(x = rbinom(100000, n, p))   # replace the zeroes with appropriate values
+```
+
+For this system, how many errors per second would we expect to get, on average? 
+
+```{r}
+
+```
+
+For this system, what is the standard deviation of the number of errors per second? 
+
+```{r}
+
+```
+
+What is the probability of getting zero errors in a given second (i.e., an error-free second)? 
+
+```{r}
+
+```
+
+What is the probability of observing exactly the expected number of errors in a given second? 
+
+```{r}
+
+```
+
+What is the probability that the observed number of errors exceeds the expected number of errors? 
+
+```{r}
+
+```
+
+What is the probability that the observed number of errors is within one standard deviation of the mean?
+
+```{r}
+
+```
+
+#### **Exploration 3**
+
+##### **Answer the following using a normal approximation to the binomial.**
+
+Create a plot showing the theoretical normal curve that would approximate the binomial model. Label (i.e., place tick marks at) the mean and four standard deviations on either side of the mean. 
+
+```{r}
+mu <- 0 # set the value of mu
+sigma <- 1 # set the value of sigma
+
+ggplot() +
+  stat_function(
+    fun = dnorm,
+    args = list(mu, sigma)
+  ) +
+  scale_x_continuous(
+    limits = c(mu - (4 * sigma), mu + (4 * sigma)),
+    breaks = seq(mu - (4 * sigma), mu + (4 * sigma), sigma)
+  ) +
+  labs(
+    title = "informative title here", # add an appropriate title
+    x = "description and units of x", # add an appropriate label
+    y = "f(x)"
+  ) +
+  theme_minimal()
+```
+
+What is the probability that the observed number of errors exceeds the expected number of errors? 
+
+```{r}
+
+```
+
+What is the probability that the observed number of errors is within one standard deviation of the mean?
+
+```{r}
+
+```
+
+Assess your simulation results (from **Exploration 2**) for normality using density, ECDF, and normal QQ plots.
+
+```{r}
+
+```
+
+#### **Exploration 4**
+
+##### **Consider an improvement that changes the probability of bit error.**
+
+Transmitting single bits on the system results in a fairly large number of errors. What if we use a triple repetition code (TRC) strategy here? That would be a different binomial model. Let X be the number of bits in a single TRC block that are correctly received---we are now talking about one block of three bits, not the 10^9^ bits from before. Compute the pmf of X. Display the results and create a bar plot. 
+
+```{r}
+
+```
+
+Using majority decoding, what is the probability that any single TRC block (e.g., 000) is interpreted *incorrectly*? This is the new (reduced) chance of transmission error in the system. (Note: Think, what values of X would lead to an incorrect interpretation?)
+
+```{r}
+
+```
+
+Suppose we have a parallel system that lets us transmit 10^9^ bits per second using TRC, similar to **Exploration 1** but with the smaller error rate you just calculated due to the built-in redundancy. How many errors per second would we expect to get? What would be the standard deviation?
+
+```{r}
+
+```
+
+What is the probability of getting zero errors in a given second (i.e., an error-free second)? 
+
+```{r}
+
+```
+
+What percentage reduction in error would we achieve using TRC compared to using the single-bit system?
+
+```{r}
+
+```
+
+#### **Exploration 5**
+
+##### **What if we send a short ASCII (binary) message using the two systems?**
+
+What is the probability that your name in ASCII would be transmitted without error using the original system?
+
+```{r}
+
+```
+
+What is the probability that your name in ASCII would be transmitted without error using the new TRC system?
+
+```{r}
+
+```
+
+***
+```{r}
+sessionInfo()
+```

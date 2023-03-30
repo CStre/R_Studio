@@ -1,0 +1,190 @@
+---
+title: "Project 1B: Super-calorific-expialidocious!"
+author: "Collin Streitman"
+date: '`r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
+output: 
+  html_document: 
+    theme: cosmo
+    highlight: textmate
+---
+
+```{r globaloptions, include = FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+```
+<hr>
+
+**Names of Collaborators**
+
+Names: NONE
+
+### Setup
+
+#### Packages Used
+
+Load all packages used in this project.
+
+```{r loadpackages}
+library(tidyverse)
+```
+
+#### Dataset Used
+
+Read about the Fast Food dataset on its [description page](https://stat-jet-asu.github.io/Datasets/InstructorDescriptions/fastfood2017.html). In this analysis you will focus specifically on fast food **burgers**.  
+
+* Load the Fast Food 2017 dataset from its URL
+* Pipe and `filter()` so the dataset contains only burgers
+* Pipe and `select()` only the variables `calories` and `totalfat`
+* Pipe and create two new variables with the given names using `mutate()`...
+    * `calfromfat`: the total fat calories in each burger (1 gram of fat is 9 calories)
+    * `pctfromfat`: the percentage of calories in each burger that come from fat calories
+* Be sure to store your manipulations to the dataset!
+
+Create the dataset.
+
+```{r burgerscreate}
+burgers <- read_csv("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/fastfood2017.csv") %>%
+filter(type == "Burger") %>%
+select(calories, totalfat) %>%
+mutate(calfromfat = totalfat * 9,
+       pctfromfat = (calfromfat/calories)*100)
+```
+
+Glimpse the dataset.
+
+```{r burgersglimpse}
+glimpse(burgers)
+```
+
+### Analysis
+
+#### **The Context**
+
+Nutritionists recommend against eating fast food because it is high in sodium, saturated fat, trans fat, and cholesterol. Eating too much fast food over a long period of time can lead to health problems, such as high blood pressure, heart disease, or obesity. Many fast-food meals contain more than an entire day's worth of recommended calories and fat! Websites such as [Fast Food Nutrition](https://fastfoodnutrition.org/) track fast food nutrition information.
+
+#### **The Problem**
+
+How many calories do fast food burgers contain? How much of the calorie content comes from fat? How strongly are fat and calories related?
+
+#### **Exploration 1**
+
+Create a frequency polygon with 8 bins and boxplot for `totalfat`. Use `geom_vline()` to add vertical lines to the polygon at 44 and 78 grams, the boundaries of the target range for daily total fat. Compute the upper and lower fences for the boxplot and the deciles of the distribution. 
+
+##### Polygon
+
+```{r}
+ggplot(burgers, aes(x = totalfat)) +
+  geom_freqpoly(bins = 8) + 
+  geom_vline(xintercept = 44) + 
+  geom_vline(xintercept = 78) +
+  labs(title = "Total Fat in Burgers",
+       x = "Total Fat(g)",
+       y = "Frequency of Burgers")
+```
+
+##### Boxplot
+
+```{r}
+ggplot(burgers, aes(x = totalfat)) + 
+  geom_boxplot() +
+  labs(title = "Spread of Total Fat",
+       x = "Total Fat(g)")
+```
+
+##### Fences
+
+```{r}
+burgers %>%
+  summarize(
+    LF = quantile(totalfat, 0.25) - 1.5 * IQR(totalfat),
+    UF = quantile(totalfat, 0.75) + 1.5 * IQR(totalfat))
+```
+
+##### Deciles
+
+```{r}
+quantile(burgers$totalfat, probs = c(.1, .2, .3, .4, .5, .6, .7, .8, .9))
+```
+
+#### **Exploration 2**
+
+Create a frequency polygon with 8 bins and boxplot for `pctfromfat`. Use `geom_vline()` to add vertical lines to the polygon at 20% and 35%, the boundaries of the target range for calories from fat. Compute the upper and lower fences for the boxplot and the deciles of the distribution. 
+
+##### Polygon
+
+```{r}
+ggplot(burgers, aes(x = pctfromfat)) +
+  geom_freqpoly(bins = 8) + 
+  geom_vline(xintercept = quantile(burgers$pctfromfat, .2)) + 
+  geom_vline(xintercept = quantile(burgers$pctfromfat, .35)) +
+  labs(title = "Frequency of Calories from Fat in Burgers",
+       x = "Percent of Calories from Fat(%)",
+       y = "Frequency of Burgers")
+```
+
+##### Boxplot
+
+```{r}
+ggplot(burgers, aes(x = pctfromfat)) + 
+  geom_boxplot() +
+  labs(title = "Spread of Calories from Fat",
+       x = "Percent of Calories from Fat(%)")
+```
+
+##### Fences
+
+```{r}
+burgers %>%
+  summarize(
+    LF = quantile(pctfromfat, 0.25) - 1.5 * IQR(pctfromfat),
+    UF = quantile(pctfromfat, 0.75) + 1.5 * IQR(pctfromfat))
+```
+
+##### Deciles
+
+```{r}
+quantile(burgers$pctfromfat, probs = c(.1, .2, .3, .4, .5, .6, .7, .8, .9))
+```
+
+#### **Exploration 3**
+
+Create a scatterplot for `calfromfat` (Y) by `calories` (X). Compute the correlation coefficient for these two variables.
+
+##### Scatterplot
+
+```{r}
+ggplot(burgers, aes(x = calories, y = calfromfat)) +
+  geom_point() +
+  labs(title = "Total Calories vs. Calories from Fat",
+       x = "Calories", 
+       y = "Calories from Fat")
+```
+
+##### Correlation
+
+```{r}
+burgers %>% 
+  summarize(r = cor(calories, calfromfat))
+```
+
+### Discussion
+
+Question 1: What are the shapes of the distributions of `totalfat` and `pctfromfat`? Does this make sense to you, given the selection of items in the dataset and what these variables represent?
+
+**ANSWER:** Yes, I would say that the shapes of distribution make sense to me. The "Frequency of Calories from Fat in Burgers" frequency polygon shows just how high of an amount the calories are in burgers from fat and how it clearly exceeds the target range. This makes sense since in part one of the project I learned just how much fat is in burgers. You can clearly see this relation when looking at the "Total Calories vs. Calories from Fat" scatter plot. This graph shows that as calories increase so do the amount of calories from fat. This also signifies a relationship between the amount or calories and the amount of fat. 
+
+Question 2: Menu boards for fast food often list the calorie counts for items. Is the relationship between `calfromfat` and `calories` linear? If so, how strong is the relationship? Do you think we could reasonably predict calories from fat using calories?
+
+**ANSWER:** Yes, the relationship between calories from fat and calories is linear. This can be proven from when the correlation coefficient was calculated from the "Total Calories vs. Calories from Fat" scatter plot. The relationship is actually very strong with a 98% correlation. I think when talking about burgers, you can reasonably predict calories from fat using calories. I can see that for other foods this may not work. 
+
+Question 3: Choose one burger from the article [10 Ridiculously Unhealthy Fast Food Burgers](https://www.thestreet.com/markets/10-ridiculously-unhealthy-fast-food-burgers-12854441) that is not already in the dataset. Where does it fall among the deciles for `totalfat` or `pctfromfat`? Would it be an outlier for either variable?
+
+**ANSWER:** I chose to write about the Supersonic Bacon Double Cheeseburger with Mayo that has 1,240 Calories and 87g of Fat. This amount of fat is what I would call a "heart attack maker" because with that many grams of fat, it falls on much higher than the 68.2g in the 90th percentile. Yes I would say it would be an outlier, however, it would still fall along the correlation coefficient line. There is 783g of fat from calories which is also 63% of the total fat which is also above the 90th percentile of 61% for calories from fat. This is also an outlier. 
+
+<hr>
+```{r}
+sessionInfo()
+```

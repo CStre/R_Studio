@@ -1,0 +1,169 @@
+---
+title: "Project 1C: Transmutant X"
+author: "Collin Streitman"
+date: '`r format(Sys.time(), "%A, %B %d, %Y @ %I:%M %p")`'
+output: 
+  html_document: 
+    theme: cosmo
+    highlight: textmate
+---
+
+```{r globaloptions, include = FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  warning = FALSE,
+  comment = NA
+)
+```
+<hr>
+
+**Names of Collaborators**
+
+Names: NONE
+
+### Setup
+
+#### Packages Used
+
+Load all packages used in this project.
+
+```{r loadpackages}
+library(tidyverse)
+```
+
+#### Dataset Used
+
+Read about the Galton Height---Main Dataset datasets on the [description page](https://stat-jet-asu.github.io/Datasets/InstructorDescriptions/galtonheightdata.html). You can get the URL for the `galtonfamiliesmain` dataset from the description page.
+
+Load the dataset.
+
+```{r galtonload}
+galton <- read_csv("https://raw.githubusercontent.com/STAT-JET-ASU/Datasets/master/Instructor/galtonfamiliesmain.csv")
+```
+
+Glimpse the dataset.
+
+```{r galtonglimpse}
+glimpse(galton)
+```
+
+### Analysis
+
+#### **The Context**
+
+Francis Galton, a cousin of Charles Darwin, studied the relationship between parent heights and the heights of their offspring. His pioneering [1886 article](https://galton.org/essays/1880-1889/galton-1886-jaigi-regression-stature.pdf) is the first appearance of regression analysis in print. He originated many statistical terms and concepts, including regression, correlation, deviate, quartile, and percentile, plus median for the midpoint of a distribution. His colleague and frequent collaborator Karl Pearson developed the Pearson product-moment correlation coefficient from the work of Galton and Auguste Bravais. 
+
+#### **The Problem**
+
+As one of his many genetic studies, Galton compared the heights of children to the heights of their parents. Before this analysis, he multiplied all measurements of mothers' heights and female children's heights by 1.08. About this data transformation, Galton said, "In every case I transmuted the female statures to their corresponding male equivalents and used them in their transmuted form, so that no objection grounded on the sexual difference of stature need be raised when I speak of averages." What is the effect on the distributions when his "transmutation" is used?
+
+#### **Data Transformation**
+
+Create a new variable named `HeightT` using `mutate` and `if_else()` to perform Galton's "transmutation" of the `Height` data. The measured heights of daughters should be multipled by `1.08` while the heights of the sons should remain the same. Remember to store your changes! (Hint: Check out the [syntax](https://rdrr.io/cran/dplyr/man/if_else.html) for the `ifelse()` function).
+
+```{r}
+galtonUpdated <- galton %>%
+mutate(HeightT = (if_else(Child == "Daughter", 
+                                (HeightT = Height * 1.08) , 
+                                (HeightT = Height), 
+                          missing = NULL
+                          )
+                  )
+       )
+galtonUpdated
+```
+
+#### **Exploration 1**
+
+Compute summary statistics (n, mean, standard deviation, five-number summary, IQR, and range) for `Height` grouped by `Child` to compare the distributions of measured son and daughter heights.
+
+```{r}
+galtonUpdated %>%
+  group_by(Child) %>%
+  summarize(n     = n(),
+            xbar  = mean(Height),
+            s     = sd(Height),
+            xmin  = min(Height),
+            Q1    = quantile(Height, 0.25),
+            med   = median(Height),                  
+            Q3    = quantile(Height, 0.75),
+            xmax  = max(Height),
+            iqr   = IQR(Height),
+            rng   = diff(range(Height)))
+```
+
+#### **Exploration 2**
+
+Create a density plot with `color = Child` in the aesthetics to show overlapping densities for measured heights of sons and daughters. Be sure to use an appropriate transparency.
+
+```{r}
+ggplot(galtonUpdated, aes(x = Height, group = Child , color = Child, fill = Child)) +
+  geom_density(alpha = 0.40) +
+  labs(title = "Distribution of Height for Sons and Daughters", 
+       x = "Height(in)")
+```
+
+#### **Exploration 3**
+
+Create a boxplot with `y = Child` in the aesthetics to compare the measured heights of sons and daughters.
+
+```{r}
+ggplot(galtonUpdated, aes(x = Height, y = Child)) + 
+  geom_boxplot() +
+  labs(title = "Comparison of Heights Among Sons and Daughters",
+       x = "Height(in)",
+       y = "Child")
+```
+
+#### **Exploration 4**
+
+Compute summary statistics (n, mean, standard deviation, five-number summary, IQR, and range) for `HeightT` grouped by `Child` to compare the distributions of "transmuted" son and daughter heights.
+
+```{r}
+galtonUpdated %>%
+  group_by(Child) %>%
+  summarize(n     = n(),
+            xbar  = mean(HeightT),
+            s     = sd(HeightT),
+            xmin  = min(HeightT),
+            Q1    = quantile(HeightT, 0.25),
+            med   = median(HeightT),                  
+            Q3    = quantile(HeightT, 0.75),
+            xmax  = max(HeightT),
+            iqr   = IQR(HeightT),
+            rng   = diff(range(HeightT)))
+```
+
+#### **Exploration 5**
+
+Create a density plot with `color = Child` in the aesthetics to show overlapping densities for "transmuted" heights of sons and daughters. Be sure to use an appropriate transparency.
+
+```{r}
+ggplot(galtonUpdated, aes(x = HeightT, group = Child , color = Child, fill = Child)) +
+  geom_density(alpha = 0.40) +
+  labs(title = "Distribution of Revised Height for Sons and Daughters", 
+       x = "Height(in)")
+```
+
+#### **Exploration 6**
+
+Create a boxplot with `y = Child` in the aesthetics to compare the "transmuted" heights of sons and daughters.
+
+```{r}
+ggplot(galtonUpdated, aes(x = HeightT, y = Child)) + 
+  geom_boxplot() +
+  labs(title = "Comparison of Revised Heights Among Sons and Daughters",
+       x = "Height(in)",
+       y = "Child")
+```
+
+### Discussion
+
+Was Galton's "transmutation" successful in essentially eliminating "the sexual difference of stature" in his dataset? Consider shape, center, and variability. Explain using information from **both** the summaries and the plots. 
+
+**ANSWER:** Yes, Galton's transmutation of height was successful and seemed the level the gap of height among gender. In the first density graph called, "Distribution of Height for Sons and Daughters", you can see a clear difference among sons and daughters where as the second density graph after the transmutation is pretty much identical for both son and daughter. This is also visible in the first boxplot called "Comparison of Heights Among Sons and Daughters" where the spread of heights among sons was skewed much higher compared to daughters. This was also leveled out in the second boxplot where the spread of height is almost identical for son and daughter. Other than the charts, this can also be seen with the tables. For example, in the first table in exploration 1, the Q1, Median, and Q3 for sons was all higher than daughters and so was the Mean being 69 for sons and 64 for daughters. This was also completely changed after the transmutation in exploration 4 where the Q1, Median, Q3 and Mean were all the same. This shows that the values total average is the same as well as the spread of data for the height is the same. 
+
+<hr>
+```{r}
+sessionInfo()
+```
